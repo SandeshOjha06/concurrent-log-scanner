@@ -4,8 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
-	"time"
 
 	"github.com/SandeshOjha06/go-systems-practice"
 )
@@ -32,6 +30,6 @@ func main(){
 		log.Fatal("Execution failed: %v", err)
 	}
 
-
+	fmt.Print("Scan complete... Total occurences found: %d\n", totalCount)
 
 }
