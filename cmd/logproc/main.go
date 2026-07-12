@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/SandeshOjha06/go-systems-practice"
+	"github.com/SandeshOjha06/go-systems-practice/internal/logproc"
 )
 
 func main(){
@@ -14,15 +14,15 @@ func main(){
 
 	target := flag.String("word", "ERROR", "Counter of specific words")
 
-	workers := flag.String("workers", 4, "Number of concurrent goroutinrs")
+	workers := flag.Int("workers", 4, "Number of concurrent goroutinrs")
 
 	flag.Parse()
 
 	if *dirPath == "" || *target == "" {
-		log.Fatal("Both -dir and -word flags are required")
+		log.Fatalf("Both -dir and -word flags are required")
 	}
 
-	startTime := time.Now()
+	
 
 	totalCount, err := logproc.RunEngine(*dirPath, *target, *workers) 
 
@@ -30,6 +30,6 @@ func main(){
 		log.Fatal("Execution failed: %v", err)
 	}
 
-	fmt.Print("Scan complete... Total occurences found: %d\n", totalCount)
+	fmt.Printf("Scan complete... Total occurences found: %d\n", totalCount)
 
 }
