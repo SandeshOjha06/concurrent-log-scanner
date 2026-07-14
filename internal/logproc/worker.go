@@ -1,11 +1,40 @@
 package logproc
 
 import (
+	"bufio"
 	"fmt"
-	"io/fs" 
+	"io/fs"
+	"log"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
+
+func processFile(path, target string) (int, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return 0, err
+	}
+
+	defer file.Close()
+
+	count := 0 
+
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		count += strings.Count(line, target)
+	}
+		
+	if err := scanner.Err(); err != nil {
+		return count, err
+	}
+
+	return count, nil
+
+}
 
 func RunEngine(dirPath string, target string, workers int) (int, error) {
 	var wg sync.WaitGroup
