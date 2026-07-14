@@ -7,9 +7,8 @@ import (
 	"sync"
 )
 
-var wg sync.WaitGroup
-
 func RunEngine(dirPath string, target string, workers int) (int, error) {
+	var wg sync.WaitGroup
 	jobs := make(chan string, 100)
 
 	// take file info
@@ -36,14 +35,18 @@ func RunEngine(dirPath string, target string, workers int) (int, error) {
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
 
-		go func() {
+		go func(workerId int) {
 			defer wg.Done()
+			
 
 			for path := range jobs { 
-				fmt.Printf("Worker in path: %s\n", path) 
+				fmt.Printf("Worker %d in path: %s\n", workerId, path) 
 			}
 		}() 
 	}
+
+	wg.Wait()
+	fmt.Println("All workers have finished")
 
 	return 0, nil
 }
