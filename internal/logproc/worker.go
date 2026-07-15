@@ -3,9 +3,7 @@ package logproc
 import (
 	"bufio"
 	"fmt"
-	"go/format"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
