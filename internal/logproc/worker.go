@@ -3,6 +3,7 @@ package logproc
 import (
 	"bufio"
 	"fmt"
+	"go/format"
 	"io/fs"
 	"log"
 	"os"
@@ -39,7 +40,7 @@ func processFile(path, target string) (int, error) {
 func RunEngine(dirPath string, target string, workers int) (int, error) {
 	var wg sync.WaitGroup
 	jobs := make(chan string, 100)
-
+	results := make(chan int, 100)
 	// take file info
 	go func() {
 		err := filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, err error) error {
@@ -66,16 +67,33 @@ func RunEngine(dirPath string, target string, workers int) (int, error) {
 
 		go func(workerId int) {
 			defer wg.Done()
-			
+		//process file
+
 
 			for path := range jobs { 
-				fmt.Printf("Worker %d in path: %s\n", workerId, path) 
+				count, err := processFile(path, target)
+				if err != nil {
+					fmt.Print("Worker failed")
+					continue
+				}
+
+				results <- count
 			}
-		}() 
+		}(i) 
 	}
 
-	wg.Wait()
-	fmt.Println("All workers have finished")
+	// this prevents deadlock
+	// results channel would be forever filled otherwise
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
 
-	return 0, nil
+	totalCount := 0
+
+	for count := range results {
+		totalCount += count
+	}
+
+	return totalCount, nil
 }
