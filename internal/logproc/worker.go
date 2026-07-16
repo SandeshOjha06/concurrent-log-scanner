@@ -2,6 +2,7 @@ package logproc
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -18,7 +19,7 @@ func processFile(path, target string) (int, error) {
 
 	defer file.Close()
 
-	count := 0 
+	count := 0
 
 	scanner := bufio.NewScanner(file)
 
@@ -26,32 +27,36 @@ func processFile(path, target string) (int, error) {
 		line := scanner.Text()
 		count += strings.Count(line, target)
 	}
-		
+
 	if err := scanner.Err(); err != nil {
 		return count, err
 	}
 
 	return count, nil
-
 }
 
-func RunEngine(dirPath string, target string, workers int) (int, error) {
+func RunEngine(ctx context.Context, dirPath string, target string, workers int) (int, error) {
 	var wg sync.WaitGroup
 	jobs := make(chan string, 100)
 	results := make(chan int, 100)
+
 	// take file info
 	go func() {
 		err := filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, err error) error {
-			if err != nil { 
+			if err != nil {
 				return err
-			} 
+			}
+
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
 
 			if !d.IsDir() {
 				jobs <- path
 			}
 
 			return nil
-		}) 
+		})
 
 		if err != nil {
 			fmt.Printf("Error working directory: %v\n", err)
@@ -65,19 +70,28 @@ func RunEngine(dirPath string, target string, workers int) (int, error) {
 
 		go func(workerId int) {
 			defer wg.Done()
-		//process file
+			//process file
 
+			for {
+				select {
+				case <-ctx.Done():
+					fmt.Printf("Worker %d was cancelled\n", workerId)
+					return
 
-			for path := range jobs { 
-				count, err := processFile(path, target)
-				if err != nil {
-					fmt.Print("Worker failed")
-					continue
+				case path, ok := <-jobs:
+					if !ok {
+						return
+					}
+
+					count, err := processFile(path, target)
+
+					if err != nil {
+						fmt.Printf("Worker %d failed on path %s\n", workerId, path)
+					}
+					results <- count
 				}
-
-				results <- count
 			}
-		}(i) 
+		}(i)
 	}
 
 	// this prevents deadlock
